@@ -1,0 +1,73 @@
+version: "3"
+
+services:
+  # Apache configuration
+  apache:
+    image: "brettt89/httpd:alpine"
+    links:
+      - "php:php"
+    depends_on:
+      - "ssl-generator"
+    volumes:
+      - "code:${MOUNT_LOCATION:-/var/www/mysite/www}"
+      - "ssl-files:${SSL_DIR:-/usr/local/apache2/conf/ssl}"
+    working_dir: "${MOUNT_LOCATION:-/var/www/mysite/www}"
+    environment:
+      WEB_DOMAIN: "${WEB_DOMAIN:-localhost}"
+      MOUNT_LOCATION: "${MOUNT_LOCATION:-/var/www/mysite/www}"
+      PHP_SERVER: "php"
+      PHP_PORT: 9000
+    stdin_open: true
+    tty: true
+    ports:  
+      - "80:80"
+      - "443:443"
+
+  # SSL Certificate generator
+  ssl-generator:
+    image: "frapsoft/openssl"
+    volumes:
+      - "ssl-files:/export"
+    command: ["req", "-subj", "/CN=${WEB_DOMAIN:-localhost}", "-x509", "-new", "-newkey", "rsa:2048", "-sha256", "-days", "365", "-nodes", "-keyout", "/export/server.key", "-out", "/export/server.crt"]
+
+
+  # PHP configuration
+  php:
+    image: brettt89/php7.1-fpm:alpine
+    links:
+      - database:database
+    volumes:
+      - "code:${MOUNT_LOCATION:-/var/www/mysite/www}"
+    working_dir: "${MOUNT_LOCATION:-/var/www/mysite/www}"
+    stdin_open: true
+    tty: true
+
+  # Database configuration
+  database:
+    image: mysql:5
+    volumes:
+      - 'db-data:/var/lib/mysql'
+    restart: always
+    stdin_open: true
+    tty: true
+    environment:
+      - MYSQL_ALLOW_EMPTY_PASSWORD=true
+
+  # SSPAK configuration
+  sspak:
+    image: brettt89/sspak
+    links:
+      - database:database
+    volumes:
+      - "${SNAPSHOT_DIR}:/app/snapshots:rw"
+      - "code:/app/public:ro"
+
+volumes:
+  db-data:
+  ssl-files:
+  code:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=host.docker.internal,nfsvers=3,tcp,rw,async,noatime,rsize=32768,wsize=32768,proto=tcp
+      device: ":${MOUNT_DIR:?err}"  # location on nfs server of file/dir you want to mount
