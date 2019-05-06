@@ -10,7 +10,7 @@ This configuration is intended to be used with development environments
     **IMPORTANT!: MUST BE FULL DIRECTORY**
     _E.g. `MOUNT_DIR=/User/bob/src/website`_
    - `SNAPSHOT_DIR` - Directory to store snapshots (can be relative to project root)
-     _E.g. (`SNAPSHOT_DIR=..//snapshots`)_
+     _E.g. (`SNAPSHOT_DIR=../snapshots`)_
    - `WEB_DOMAIN` - Domain for local testing
      _E.g. (`WEB_DOMAIN=mysite.localhost`)_
 
